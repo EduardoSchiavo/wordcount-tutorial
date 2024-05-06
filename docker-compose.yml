@@ -1,0 +1,5 @@
+version: '3'
+
+services:
+  zookeper:
+    image: confluentinc/cp-zookeeper:6.0.0

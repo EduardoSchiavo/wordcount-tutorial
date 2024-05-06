@@ -2,8 +2,13 @@ package com.wordcounttutorial;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Produced;
 
+import java.util.Arrays;
 import java.util.Properties;
 
 public class WordCountApp {
@@ -15,5 +20,22 @@ public class WordCountApp {
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, "0");
+
+        StreamsBuilder streamsBuilder = new StreamsBuilder();
+
+        //topology
+        streamsBuilder.<String, String>stream("sentences")
+                .flatMapValues((readOnlyKey, value) -> Arrays.asList(value.toLowerCase().split(" ")))
+                .groupBy((key, value)->value)
+                .count(Materialized.with(Serdes.String(), Serdes.Long()))
+                .toStream()
+                .to("word-count", Produced.with(Serdes.String(), Serdes.Long()));
+        //
+        KafkaStreams kafkaStreams = new KafkaStreams(streamsBuilder.build(), props);
+
+        kafkaStreams.start();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(kafkaStreams::close));
+
     }
 }
