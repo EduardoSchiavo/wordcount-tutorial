@@ -23,14 +23,20 @@ public class WordCountApp {
 
         StreamsBuilder streamsBuilder = new StreamsBuilder();
 
-        //topology
+        // Build the Topology
         streamsBuilder.<String, String>stream("sentences")
-                .flatMapValues((readOnlyKey, value) -> Arrays.asList(value.toLowerCase().split(" ")))
-                .groupBy((key, value)->value)
+                .flatMapValues((key, value) ->
+                        Arrays.asList(value.toLowerCase()
+                                .split(" ")))
+                .groupBy((key, value) -> value)
                 .count(Materialized.with(Serdes.String(), Serdes.Long()))
                 .toStream()
                 .to("word-count", Produced.with(Serdes.String(), Serdes.Long()));
-        //
+
+
+
+
+
         KafkaStreams kafkaStreams = new KafkaStreams(streamsBuilder.build(), props);
 
         kafkaStreams.start();
